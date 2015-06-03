@@ -1,0 +1,73 @@
+#!/bin/sh
+ 
+# Dependencies: imagemagick i3lock-color-git scrot
+# Blurtypes from very slow to somehow fast: 0x5 0x2 5x3 2x3 2x8
+# All options are here: http://www.imagemagick.org/Usage/blur/#blur_args
+
+# DYNAMIC VERSION
+# Downloads and converts the xkcd image on-the-fly.
+# Will not work offline and could be very slow depending on your connection.
+
+#TODO: is there an easier way?
+getHour(){
+    h=$(date --utc '+%-H')
+    m=$(date --utc '+%-M')
+
+    [ $m -lt 7 ] && m=00
+
+    [ $m -gt 7 -a $m -lt 15 ] && m=15
+    [ $m -lt 22 -a $m -gt 15 ] && m=15
+
+    [ $m -gt 22 -a $m -lt 30 ] && m=30
+    [ $m -lt 42 -a $m -gt 30 ] && m=30
+
+    [ $m -gt 42 -a $m -lt 45 ] && m=45
+    [ $m -lt 52 -a $m -gt 45 ] && m=45
+
+    [ $m -gt 52 ] && m=00 && let h++
+
+    # the xkcd time is inverted …no clue why (wtf muricans?!)
+    [ $h -ge 12 ] && let h=$h-12
+
+    printf "%02dh%02dm" $h $m
+}
+
+
+ 
+BLURTYPE="5x3"
+IMAGE=/tmp/i3lock.png
+XKCD=/tmp/xkcd_now.png
+
+
+TEXT=$1
+if [ "$TEXT" = '' ]; then TEXT="Yes, this is a lockscreen!"; fi
+
+scrot $IMAGE
+curl -o "$XKCD" "http://imgs.xkcd.com/comics/now/$(getHour).png"
+
+mogrify -edge 1 -transparent white -blur 0x0.5 $XKCD
+
+convert $IMAGE \
+    -level 0%,100%,0.6 \
+    -blur $BLURTYPE \
+    -font Liberation-Sans \
+    -pointsize 48 \
+    -fill white \
+    -gravity center \
+    -annotate +0+500 "$TEXT" - | \
+composite -gravity center $XKCD - $IMAGE
+
+i3lock \
+    --textcolor=ffffff00 \
+    --insidecolor=ffffff1c \
+    --ringcolor=ffffff3e \
+    --linecolor=ffffff00 \
+    --keyhlcolor=00000080 \
+    --ringvercolor=00000000 \
+    --insidevercolor=0000001c \
+    --ringwrongcolor=00000055 \
+    --insidewrongcolor=0000001c \
+    -i $IMAGE
+
+#TODO: cache the xkcd image?
+rm $IMAGE $XKCD
