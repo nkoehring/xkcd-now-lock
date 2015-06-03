@@ -10,7 +10,7 @@ curl -O "$URL"'[00-23]h[00-45:15]m.png'
 echo "Download complete! Converting images now…"
 
 for f in "??h??m.png"; do
-    mogrify -edge 1 -transparent white -blur 0x0.5 $f
+    mogrify -transparent white -edge 1 -transparent black $f
 done
 
 
